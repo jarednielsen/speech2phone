@@ -1,5 +1,12 @@
 # speech2phone
 
+## Directory Structure
+- *experiments/*: Put the results of *mag* experiments as subfolders in here.
+- *pca/*: Seong will put his PCA code here, using the preprocessing module and *librosa*.
+- *preprocessing/*: Kyle will build this out, and Jared will figure out Python's dumb module system.
+- *pretty_images/*: Random plots that are interesting and could be useful in the final report. For example, a PCA .png
+- *temp_jaredkyleseong/*: The equivalent of branches. Put work-in-progress here, and bring it out into the main system when it's done.
+
 ## boundary recognition
 
 Approaches
