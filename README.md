@@ -19,7 +19,15 @@ Options for embedding include:
 
 These will all be specifiable by importing from the embedding module. The spectrum works pretty well as an embedding space, as we found by doing some PCA. I think we'll use it as a baseline.
 
-## Things to try
+## TODO
+
+- set up experiment example using mag (Jared)
+- PCA on TIMIT in `/pca` (Seong)
+- abstract class for preprocessing in `/preprocessing` (Jared)
+- flesh out preprocessing module (Kyle)
+- use preprocessing module to do random forests and xgboost (Seong)
+
+## Things to try (add ideas here)
 
 - trinemes
 - dynamic time-warping
