@@ -1,0 +1,7 @@
+# runtime and IDE settings
+**/__pycache__/*
+**/.ipynb_checkpoints/*
+.vscode/**
+
+# data
+TIMIT/**
