@@ -31,4 +31,4 @@ These will all be specifiable by importing from the embedding module. The spectr
 
 - trinemes
 - dynamic time-warping
-- reapply models to TIMIT to quantify results
+- reapply models to TIMIT to quantify results (quantified semi-supervised learning)
