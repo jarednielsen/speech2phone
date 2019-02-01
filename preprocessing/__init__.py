@@ -1,0 +1,10 @@
+"""
+Everything imported here will be available under `speech2phone.preprocessing`.
+So even though the function `test_preprocess` is in the filesystem as
+`speech2phone/preprocessing/preprocessing.py -> test_preprocess`,
+it is available in Python as `speech2phone.preprocessing.test_preprocess`.
+"""
+
+# TL;DR: Put everything here. Remember the dot.
+
+from .preprocessing import Preprocess, test_preprocess

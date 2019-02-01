@@ -11,7 +11,7 @@ class Preprocess:
     silently failing.
     """
 
-    self.directory = "TIMIT/TIMIT/something"
+    directory = "TIMIT/TIMIT/something"
 
     @staticmethod
     def get_data():
@@ -23,3 +23,7 @@ class Preprocess:
             tuple(list of numpy arrays, list of phoneme type).
         """
         return 2
+
+def test_preprocess():
+    result = Preprocess.get_data()
+    print("running test_preprocess(); result is {}".format(result))
