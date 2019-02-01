@@ -8,9 +8,11 @@
 - *temp_jaredkyleseong/*: The equivalent of branches. Put work-in-progress here, and bring it out into the main system when it's done.
 
 ## Setup
-The directory containing `speech2phone` must be on the environment variable `PYTHONPATH`. For example, if I have `Users/jarednielsen/Desktop/speech2phone`, then I must have `Users/jarednielsen/Desktop` on my PYTHONPATH. To append it, run `export PYTHONPATH="${PYTHONPATH}:/my/other/path"`.
-After doing this, you can run `import speech2phone` in any IPython shell. Use absolute imports everywhere, because Python relative imports are terrible.  
-See `speech2phone/__init__.py` and `speech2phone/preprocessing/__init__.py` for examples of how to set up subpackages.
+- The directory containing `speech2phone` must be on the environment variable `PYTHONPATH`. 
+- To append it, run `export PYTHONPATH="${PYTHONPATH}:/my/other/path"`. 
+- For example, if I have `Users/jarednielsen/Desktop/speech2phone`, then I must have `Users/jarednielsen/Desktop` on my `PYTHONPATH`. 
+- **Use absolute imports everywhere**. For example, `import speech2phone` or `import speech2phone.preprocessing`.
+- See `speech2phone/__init__.py` and `speech2phone/preprocessing/__init__.py` for examples of how to set up subpackages.
 
 
 ## boundary recognition
