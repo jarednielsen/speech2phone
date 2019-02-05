@@ -9,6 +9,10 @@
 - *results/*: Assorted images/ plots that are interesting and could be useful in the final report. For example, a PCA .png
 - *temp_jaredkyleseong/*: The equivalent of branches. Put work-in-progress here, and bring it out into the main system when it's done.
 
+## Testing
+- Run `pytest test_main.py`.
+- Add additional tests there. We'll use a single test module for now. `pytest` uses simple assert statements.
+
 ## Rules
 
 - The directory containing `speech2phone` must be on the environment variable `PYTHONPATH`.
