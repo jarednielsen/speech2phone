@@ -6,8 +6,9 @@ call `from scipy import linalg`.
 
 # TL;DR: Do this for every folder, along with __init__.py
 
-from . import pca
+from . import experiments
 from . import preprocessing
 from . import temp_jared
 from . import temp_kyle
 from . import temp_seong
+from . import visualizations
