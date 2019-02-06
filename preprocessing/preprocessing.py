@@ -13,6 +13,10 @@ Kyle Roth. 2019-02-05.
 
 from os import path
 from glob import iglob as glob
+import librosa
+import numpy as np
+import scipy as sp
+from scipy import signal
 import warnings
 
 from scipy.io import wavfile
@@ -20,9 +24,12 @@ from sklearn.model_selection import train_test_split
 
 class Preprocess:
     """Static class for encapsulation of the get_data function."""
+    
+    rate = 16000
+    mel_ = librosa.filters.mel(rate, 2048, n_mels=80) # linear transformation, (80,1025)
 
     @staticmethod
-    def _load_from_dir(directory):
+    def _load_from_dir(directory, max_files=None):
         """Load the dataset from the specified directory.
 
         Warn if a WAV file is encountered without a corresponding PHN file. See module docstring for instruction to
@@ -35,7 +42,12 @@ class Preprocess:
         samples = []
         phonemes = []
 
-        for file in glob(path.join(directory, '**/*.WAV.wav'), recursive=True):
+        file_list = list(glob(path.join(directory, '**/*.WAV.wav'), recursive=True))
+        print("num_files: {}".format(len(file_list)))
+        if max_files is not None:
+            file_list = file_list[:max_files]
+
+        for file in file_list:
             if path.isfile(file[:-7] + 'PHN'):
                 # read entire audio file
                 try:
@@ -54,7 +66,7 @@ class Preprocess:
         return samples, phonemes
 
     @staticmethod
-    def get_data(dataset='train', preprocessor=None, batch_preprocess=True, TIMIT_root='TIMIT/TIMIT/'):
+    def get_data(dataset='train', preprocessor=None, batch_preprocess=True, TIMIT_root='TIMIT/TIMIT/', max_files=None):
         """Return the train, validation, or test set from the TIMIT directory.
 
         If batch_preprocess is set, the preprocessor must accept a list of data points (audio samples) and a list of
@@ -78,7 +90,7 @@ class Preprocess:
             raise ValueError('dataset must be specified as one of (\'train\', \'val\', \'test\')')
 
         # load data from the directory
-        X, y = Preprocess._load_from_dir(TIMIT_root)
+        X, y = Preprocess._load_from_dir(TIMIT_root, max_files=max_files)
 
         # get just train set or just val set if necessary
         if dataset.lower() == 'train':
@@ -95,6 +107,16 @@ class Preprocess:
                 X, y = list(X), list(y)
 
         return X, y
+    
+    @staticmethod
+    def mel(X, y):
+        """Mel spectrogram preprocessing.
+        """
+        spectrum = np.log(np.abs(sp.fft(X))[:len(X)//2])
+        spectrum = signal.resample(spectrum, 1025)
+        X_mel = np.dot(Preprocess.mel_, spectrum)
+        return X_mel, y
+        
 
 
 def test_preprocess():
