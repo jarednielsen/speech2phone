@@ -18,7 +18,7 @@
 - The directory containing `speech2phone` must be on the environment variable `PYTHONPATH`.
 - To append it, run `export PYTHONPATH="${PYTHONPATH}:/my/other/path"`.
 - For example, if I have `Users/jarednielsen/Desktop/speech2phone`, then I must have `Users/jarednielsen/Desktop` on my `PYTHONPATH`.
-- If that doesn't work because of conda, Add a .pth file to the directory $HOME/path/to/anaconda/lib/pythonX.X/site-packages. This can be named anything (it just must end with .pth). A .pth file is just a newline-separated listing of the full path-names of directories that will be added to your path on Python startup. 
+- If that doesn't work because of conda, Add a .pth file to the directory $HOME/path/to/anaconda/lib/pythonX.X/site-packages. This can be named anything (it just must end with .pth). A .pth file is just a newline-separated listing of the full path-names of directories that will be added to your path on Python startup. For example, `/anaconda3/envs/py36/lib/python3.6/site-packages/path.pth` has the line `/Users/jarednielsen/Desktop` in it.
 - **Use absolute imports everywhere**. For example, `import speech2phone` or `import speech2phone.preprocessing`.
 - See `speech2phone/__init__.py` and `speech2phone/preprocessing/__init__.py` for examples of how to set up subpackages.
 - `/preprocessing` applies classic data processing methods (i.e. not learned) to the data, while `/embedding` applies learned methods. For example, Mel spectrogram stuff should be handled in `/preprocessing`.
