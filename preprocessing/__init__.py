@@ -7,4 +7,4 @@ Jared Nielsen. 2019-02-05.
 
 # TL;DR: Put everything here. Remember the dot.
 
-from .preprocessing import Preprocess, test_preprocess
+from .preprocessing import *
