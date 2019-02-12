@@ -1,5 +1,31 @@
 # speech2phone
 
+## TODO
+Mark when you've finished them.
+
+- (Kyle) Preprocessor caching ✅
+- (Kyle) Preprocessor returns categorical distribution
+- (Kyle) Embedding baseline
+- (Seong) Python *scripts* (not notebooks) that use grid search, `mag` and save the plots in `/visualizations` for the following models:
+  - Random Forest
+  - XGBoost
+  - Gaussian Discriminant Analysis
+  - Naive Bayes
+  - Logistic Regression
+  - Principal Component Analysis
+  - Support Vector Machine
+  - K-Nearest Neighbors
+  - K-Means
+  - Gaussian Mixture Model
+- (Jared) Semi-supervised learning *scripts* (not notebooks) with fully-connected layer and 1-D CNN
+  - Self-training
+  - Co-training
+  - Pi-model
+  - Label propagation
+  - Label gradient alignment
+  - Using your model against itself
+- (anyone)
+
 ## Directory Structure
 
 - *experiments/*: Put the results of *mag* experiments as subfolders in here.
@@ -41,17 +67,6 @@ Options for embedding include:
 - autoencoder
 
 These will all be specifiable by importing from the embedding module. The spectrum works pretty well as an embedding space, as we found by doing some PCA (see `/pca`). I think we'll use it as a baseline.
-
-## TODO
-
-- create spectrum preprocessor with any customizations you like (Seong)
-- phoneme visualization with PCA and Mel spectrogram in `/visualization/pca` (Seong)
-- use caching with a pickled dataset file (add to .gitignore) (Kyle)
-- add padding from surrounding audio, kwarg default to 0 (Kyle)
-- use preprocessing module to do random forests and xgboost (Seong and Jared)
-- add pytest and mag (Jared)
-- start using semi-supervised learning metric (Jared)
-- start playing with learned embeddings in `/embedding` (Kyle)
 
 ## Things to try (add ideas here)
 
