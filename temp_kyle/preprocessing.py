@@ -15,6 +15,7 @@ from os import path, mkdir
 from glob import iglob as glob
 import warnings
 import pickle
+import inspect
 
 import librosa
 import numpy as np
@@ -31,6 +32,18 @@ class Preprocess:
     mel_ = librosa.filters.mel(rate, 2048, n_mels=80)  # linear transformation, (80,1025)
 
     @staticmethod
+    def _get_TIMIT_set_path(TIMIT_root, dataset):
+        if dataset.lower() in {'train', 'val', 'validation'}:
+            return path.join(TIMIT_root, 'TRAIN')
+        elif dataset.lower() == 'test':
+            warnings.warn('loading test data; only use test data to demonstrate final results')
+            return path.join(TIMIT_root, 'TEST')
+        elif dataset.lower() == 'toy':
+            return path.join(TIMIT_root, 'TRAIN')
+        else:
+            raise ValueError('dataset must be specified as one of (\'train\', \'val\', \'test\', \'toy\')')
+
+    @staticmethod
     def _load_from_dir(directory, max_files=None):
         """Load the dataset from the specified directory.
 
@@ -44,10 +57,9 @@ class Preprocess:
         samples = []
         phonemes = []
 
-        file_list = list(glob(path.join(directory, '**/*.WAV.wav'), recursive=True))
-        print("num_files: {}".format(len(file_list)))
+        file_list = glob(path.join(directory, '**/*.WAV.wav'), recursive=True)
         if max_files is not None:
-            file_list = file_list[:max_files]
+            file_list = list(file_list)[:max_files]
 
         for file in file_list:
             if path.isfile(file[:-7] + 'PHN'):
@@ -68,7 +80,7 @@ class Preprocess:
         return samples, phonemes
 
     @staticmethod
-    def get_data(dataset='train', preprocessor=None, batch_preprocess=True, TIMIT_root='TIMIT/TIMIT/'):
+    def get_data(dataset='train', preprocessor=None, batch_preprocess=True, TIMIT_root='TIMIT/TIMIT/', use_cache=True):
         """Return the train, validation, or test set from the TIMIT directory.
 
         If batch_preprocess is set, the preprocessor must accept a list of data points (audio samples) and a list of
@@ -83,29 +95,27 @@ class Preprocess:
             list(str): Phoneme types corresponding to the audio data.
         """
         # specify the directory according to the dataset being used
-        if dataset.lower() in {'train', 'val', 'validation'}:
-            TIMIT_root = path.join(TIMIT_root, 'TRAIN')
-        elif dataset.lower() == 'test':
-            warnings.warn('loading test data; only use test data to demonstrate final results')
-            TIMIT_root = path.join(TIMIT_root, 'TEST')
-        elif dataset.lower() == 'toy':
-            TIMIT_root = path.join(TIMIT_root, 'TRAIN')
+        TIMIT_root = Preprocess._get_TIMIT_set_path(TIMIT_root, dataset)
+
+        # get the name of the preprocessing function to see if it's been used before
+        if preprocessor is None:
+            fn_name = 'none'
         else:
-            raise ValueError('dataset must be specified as one of (\'train\', \'val\', \'test\', \'toy\')')
+            fn_name = dict(inspect.getmembers(preprocessor))['__name__']
 
         # ensure the caching directory is available
-        if not path.isdir(path.join(TIMIT_root, 'cache')):
-            mkdir(path.join(TIMIT_root, 'cache'))
+        if not path.isdir(path.join(TIMIT_root, 'cache/{}'.format(dataset.lower()))):
+            mkdir(path.join(TIMIT_root, 'cache/{}'.format(dataset.lower())))
+        pickle_path = path.join(TIMIT_root, 'cache/{}/{}.pkl'.format(dataset.lower(), fn_name))
 
-        # load data from the directory unless cached
-        pickle_path = path.join(TIMIT_root, 'cache/{}.pkl'.format(dataset.lower()))
-        if path.isfile(pickle_path):  # cache exists
-            print('Loading {} set from cache...'.format(dataset), end='', flush=True)
+        # load data from either cache or directory
+        if use_cache and path.isfile(pickle_path):  # cache exists
+            print('Loading {}/{} set from cache...'.format(dataset.lower(), fn_name), end='', flush=True)
             with open(pickle_path, 'rb') as infile:
                 X, y = pickle.load(infile)
             print(' done.')
         else:  # not cached
-            print('Loading {} set from files...'.format(dataset), end='', flush=True)
+            print('Loading {} set from files...'.format(dataset.lower()), end='', flush=True)
             # load from files
             if dataset.lower() == 'toy':
                 X, y = Preprocess._load_from_dir(TIMIT_root, max_files=100)
@@ -119,20 +129,20 @@ class Preprocess:
             elif dataset.lower().startswith('val'):
                 _, X, _, y = train_test_split(X, y, test_size=0.25, random_state=42, stratify=y)
 
+            # apply preprocessor
+            if preprocessor:
+                print('Applying preprocessor "{}"...'.format(fn_name), end='', flush=True)
+                if batch_preprocess:
+                    X, y = preprocessor(X, y)
+                else:
+                    X, y = zip(*(preprocessor(x, wai) for x, wai in zip(X, y)))
+                    X, y = list(X), list(y)
+                print(' done.')
+
             # cache the dataset for future use
-            print('Saving {} set to cache...'.format(dataset), end='', flush=True)
+            print('Saving {}/{} set to cache...'.format(dataset.lower(), fn_name), end='', flush=True)
             with open(pickle_path, 'wb+') as outfile:
                 pickle.dump((X, y), outfile)
-            print(' done.')
-
-        # apply preprocessor
-        if preprocessor:
-            print('Applying preprocessing...', end='', flush=True)
-            if batch_preprocess:
-                X, y = preprocessor(X, y)
-            else:
-                X, y = zip(*(preprocessor(x, wai) for x, wai in zip(X, y)))
-                X, y = list(X), list(y)
             print(' done.')
 
         return X, y
