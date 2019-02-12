@@ -23,11 +23,12 @@ from scipy import signal
 from scipy.io import wavfile
 from sklearn.model_selection import train_test_split
 
+
 class Preprocess:
     """Static class for encapsulation of the get_data function."""
 
     rate = 16000
-    mel_ = librosa.filters.mel(rate, 2048, n_mels=80) # linear transformation, (80,1025)
+    mel_ = librosa.filters.mel(rate, 2048, n_mels=80)  # linear transformation, (80,1025)
 
     @staticmethod
     def _load_from_dir(directory, max_files=None):
@@ -98,7 +99,7 @@ class Preprocess:
 
         # load data from the directory unless cached
         pickle_path = path.join(TIMIT_root, 'cache/{}.pkl'.format(dataset.lower()))
-        if path.isfile(pickle_path): # cache exists
+        if path.isfile(pickle_path):  # cache exists
             print('Loading {} set from cache...'.format(dataset), end='', flush=True)
             with open(pickle_path, 'rb') as infile:
                 X, y = pickle.load(infile)
@@ -143,7 +144,6 @@ class Preprocess:
         spectrum = signal.resample(spectrum, 1025)
         X_mel = np.dot(Preprocess.mel_, spectrum)
         return X_mel, y
-
 
 
 def test_preprocess():
