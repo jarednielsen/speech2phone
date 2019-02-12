@@ -5,7 +5,7 @@
 Mark when you've finished them.
 
 - (Kyle) Preprocessor caching ✅
-- (Kyle) Preprocessor returns categorical distribution
+- (Kyle) Preprocessor returns categorical distribution ✅
 - (Kyle) Embedding baseline
 - (Seong) Python *scripts* (not notebooks) that use grid search, `mag` and save the plots in `/visualizations` for the following models:
   - Random Forest
