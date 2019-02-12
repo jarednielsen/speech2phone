@@ -1,6 +1,7 @@
 # speech2phone
 
 ## TODO
+
 Mark when you've finished them.
 
 - (Kyle) Preprocessor caching ✅
@@ -29,13 +30,14 @@ Mark when you've finished them.
 ## Directory Structure
 
 - *experiments/*: Put the results of *mag* experiments as subfolders in here.
-- *visualizations/*: Examples of how to plot a Mel spectrogram, etc.  
+- *visualizations/*: Examples of how to plot a Mel spectrogram, etc.
 - *preprocessing/*: Loads data from files, caches it, and returns NumPy arrays.
 - *embedding/*: Learned embeddings, applied after preprocessing. For example, PCA.
 - *results/*: Assorted images/ plots that are interesting and could be useful in the final report. For example, a PCA .png
 - *temp_jaredkyleseong/*: The equivalent of branches. Put work-in-progress here, and bring it out into the main system when it's done.
 
 ## Testing
+
 - Run `pytest test_main.py`.
 - Add additional tests there. We'll use a single test module for now. `pytest` uses simple assert statements.
 
