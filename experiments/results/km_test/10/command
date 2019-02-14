@@ -1,0 +1,1 @@
+timit_experiment.py --model KMeans --data toy --params {"n_clusters":"10"} --dir ./results/km_test

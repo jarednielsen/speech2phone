@@ -1,0 +1,1 @@
+timit_experiment.py --model QuadraticDiscriminantAnalysis --data full --params {"reg_param":"0"} --dir ./results/gda_test

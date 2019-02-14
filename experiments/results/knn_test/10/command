@@ -1,0 +1,1 @@
+timit_experiment.py --model KNeighborsClassifier --data toy --params {"n_neighbors":"10"} --dir ./results/knn_test

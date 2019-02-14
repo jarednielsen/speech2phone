@@ -1,0 +1,1 @@
+timit_experiment.py --model SVC --data toy --params {"C":"1.0"} --dir ./results/svc_test
