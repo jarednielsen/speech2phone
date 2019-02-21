@@ -1,0 +1,1 @@
+timit_experiment.py --model FCNN --data full --params {"epochs":"100"}

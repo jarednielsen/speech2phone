@@ -1,0 +1,1 @@
+multiple_experiments.py --model RandomForestClassifier --data toy --space {"max_depth":"[1, 40]", "n_estimators":"[1, 100]"}

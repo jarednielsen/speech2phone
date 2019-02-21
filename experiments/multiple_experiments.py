@@ -10,6 +10,12 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.cluster import KMeans
 from sklearn.mixture import GaussianMixture
 
+import torch
+from torch import nn
+from torch.utils.data import Dataset, DataLoader
+import torch.optim as optim
+from torch.autograd import Variable
+
 from hyperopt import hp
 from hyperopt import fmin, tpe, space_eval
 from hyperopt.pyll.base import scope
@@ -23,6 +29,9 @@ from speech2phone.preprocessing.filters import mel
 
 import argparse
 import json
+import time
+import datetime
+import ast
 
 class Decoder(json.JSONDecoder):
     def decode(self, s):
@@ -44,7 +53,69 @@ class Decoder(json.JSONDecoder):
             return [self._decode(v) for v in o]
         else:
             return o
+        
+class TimitMelClassifier(nn.Module):
+    def __init__(self):
+        super(TimitMelClassifier, self).__init__()
+        embedding_dim = 80
+        output_dim = 61
+        self.net = nn.Sequential(
+            nn.Linear(embedding_dim, 128),
+            nn.ReLU(),
+            nn.Linear(128, 128),
+            nn.ReLU(),
+            nn.Linear(128, 128),
+            nn.ReLU(),
+            nn.Linear(128, 128),
+            nn.ReLU(),
+            nn.Linear(128, 128),
+            nn.ReLU(),
+            nn.Linear(128, output_dim)
+        )
+    def forward(self, inp):
+        return self.net(inp)
 
+class TimitMelDataset(Dataset):
+    def __init__(self, X, y):
+        super().__init__()
+        self.X = X
+        self.y = y
+    def __len__(self):
+        return len(self.y)
+    def __getitem__(self, idx):
+        return self.X[idx], self.y[idx]
+
+class FCNN:
+    def __init__(self, batch_size=128, epochs=100, eta=1e-4):
+        self.batch_size = batch_size
+        self.epochs = epochs
+        self.eta = eta
+        self.model = TimitMelClassifier()
+        self.objective = nn.CrossEntropyLoss()
+        self.optimizer = optim.Adam(self.model.parameters(), lr=self.eta)
+        self.dataset = None
+        self.dataloader = None
+    
+    def fit(self, X, y):
+        self.dataset = TimitMelDataset(X, y)
+        self.dataloader = DataLoader(self.dataset, 
+                                     batch_size=self.batch_size, 
+                                     shuffle=True)
+        self._train()
+    
+    def score(self, X, y):
+        y_pred = self.model(Variable(torch.from_numpy(X)).float()).argmax(dim=1).detach().numpy()
+        return sum(y_pred == y) / len(y)
+    
+    def _train(self):
+        for e in range(self.epochs):
+            for batch, (x, y_truth) in enumerate(self.dataloader):
+                self.optimizer.zero_grad()
+                y_hat = self.model(x.float())
+                loss = self.objective(y_hat, y_truth.long())
+                loss.backward()
+                self.optimizer.step()
+    
 class XGBoost:
     def __init__(self, **params):
         self.num_round = params["num_round"]
@@ -66,7 +137,10 @@ def run_model(model, X_train, y_train, X_test, y_test, params):
     clf.fit(X_train, y_train)
     return clf.score(X_test, y_test)
 
-def main(model, data, _dir, params):
+def multiple_experiments(model, data, space):
+    ts = time.time()
+    st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d-%H-%M-%S')
+    _dir = "./results/" + model + "_" + st
     try:
         model = eval(model)
     except NameError:
@@ -79,9 +153,11 @@ def main(model, data, _dir, params):
                KNeighborsClassifier,\n\
                KMeans,\n\
                GaussianMixture,\n\
-               XGBoost")
+               XGBoost,\n\
+               FCNN")
         raise
     
+    if data == None: data = "full"
     if data == "toy":
         X_train, y_train = get_TIMIT(dataset='toy', 
                                      preprocessor=mel, 
@@ -101,10 +177,16 @@ def main(model, data, _dir, params):
         print("Data must be either 'toy' or 'full'.")
         raise
     
-    with Experiment(config=params, experiments_dir=_dir) as experiment:
-        config = experiment.config
-        score = run_model(model, X_train, y_train, X_test, y_test, params)
-        experiment.register_result('score', score)
+    def wrapper(params):
+        with Experiment(config=params, experiments_dir=_dir) as experiment:
+            config = experiment.config
+            score = run_model(model, X_train, y_train, X_test, y_test, params)
+            experiment.register_result('score', score)
+        return -score
+    
+    best = fmin(wrapper, space, algo=tpe.suggest, max_evals=5)
+    print("Best Raw:", best)
+    print("Best Readable:", space_eval(space, best))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -119,24 +201,21 @@ if __name__ == "__main__":
                         KNeighborsClassifier,\n\
                         KMeans,\n\
                         GaussianMixture,\n\
-                        XGBoost", 
+                        XGBoost,\n\
+                        FCNN", 
                         type=str, 
                         required=True)
     parser.add_argument('--data', 
                         help="Data to use. Either 'toy' or 'full'", 
                         type=str, 
-                        required=True)
-    parser.add_argument('--params', 
-                        help="Hyperparameters to be used on the model. \
-                              Must be of the form '{\"keyword\": \"value\", ...}'", 
+                        required=False)
+    parser.add_argument('--space', 
+                        help="Hyperparameter space to search optimal values over", 
                         type=str,
-                        required=True)
-    parser.add_argument('--dir', 
-                        help="Directory to save the experiment", 
-                        type=str, 
                         required=True)
     
     args = parser.parse_args()
-    params = json.loads(args.params, cls=Decoder)
-    print(params)
-    main(args.model, args.data, args.dir, params)
+    space = json.loads(args.space)
+    space = {k:ast.literal_eval(v) for k,v in space.items()}
+    space = {k:scope.int(hp.uniform(k, v[0], v[1])) for k,v in space.items()}
+    multiple_experiments(args.model, args.data, space)
