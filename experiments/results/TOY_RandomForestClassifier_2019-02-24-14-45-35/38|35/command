@@ -1,0 +1,1 @@
+multiple_experiments.py --model RandomForestClassifier --data toy --space {"n_estimators":"int:hp.uniform:[2,100]", "max_depth":"int:hp.uniform:[2,50]"} --max-evals 5

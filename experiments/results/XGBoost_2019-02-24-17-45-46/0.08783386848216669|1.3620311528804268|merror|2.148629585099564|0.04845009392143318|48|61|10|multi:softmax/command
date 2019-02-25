@@ -1,0 +1,1 @@
+multiple_experiments.py --model XGBoost --space {"max_depth":"int:hp.uniform:[5,50]", "eta":"float:hp.loguniform:[-1,1]", "gamma":"float:hp.loguniform:[-4,4]", "lambda":"float:hp.loguniform:[-4,4]", "alpha":"float:hp.loguniform:[-4,4]"} --params {"num_class": "61", "objective": "multi:softmax", "eval_metric": "merror", "num_round": "10"} --max-evals 20

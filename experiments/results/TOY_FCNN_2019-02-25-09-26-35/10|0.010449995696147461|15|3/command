@@ -1,0 +1,1 @@
+multiple_experiments.py --model FCNN --data toy --space {"num_layers":"int:hp.uniform:[2,20]", "eta":"float:hp.loguniform:[-6,-1]", "hidden_dim":"int:hp.loguniform:[2,3]"} --params {"epochs": "10"} --max-evals 5

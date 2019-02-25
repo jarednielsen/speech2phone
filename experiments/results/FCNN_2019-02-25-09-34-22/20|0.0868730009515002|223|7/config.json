@@ -1,0 +1,6 @@
+{
+    "epochs": 20,
+    "eta": 0.0868730009515002,
+    "hidden_dim": 223,
+    "num_layers": 7
+}
