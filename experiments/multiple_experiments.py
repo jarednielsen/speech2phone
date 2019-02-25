@@ -32,6 +32,7 @@ import json
 import time
 import datetime
 import ast
+import csv
 
 class Decoder(json.JSONDecoder):
     def decode(self, s):
@@ -55,25 +56,23 @@ class Decoder(json.JSONDecoder):
             return o
         
 class TimitMelClassifier(nn.Module):
-    def __init__(self):
+    def __init__(self, num_layers, hidden_dim):
         super(TimitMelClassifier, self).__init__()
         embedding_dim = 80
         output_dim = 61
-        self.net = nn.Sequential(
-            nn.Linear(embedding_dim, 128),
-            nn.ReLU(),
-            nn.Linear(128, 128),
-            nn.ReLU(),
-            nn.Linear(128, 128),
-            nn.ReLU(),
-            nn.Linear(128, 128),
-            nn.ReLU(),
-            nn.Linear(128, 128),
-            nn.ReLU(),
-            nn.Linear(128, output_dim)
-        )
-    def forward(self, inp):
-        return self.net(inp)
+        self.net = nn.ModuleList([
+            nn.Linear(hidden_dim, hidden_dim) 
+            for _ in range(num_layers)])
+        self.input_layer = nn.Linear(embedding_dim, hidden_dim)
+        self.output_layer = nn.Linear(hidden_dim, output_dim)
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        out = self.relu(self.input_layer(x))
+        for l in self.net:
+            out = self.relu(l(out))
+        out = self.relu(self.output_layer(out))
+        return out
 
 class TimitMelDataset(Dataset):
     def __init__(self, X, y):
@@ -86,11 +85,11 @@ class TimitMelDataset(Dataset):
         return self.X[idx], self.y[idx]
 
 class FCNN:
-    def __init__(self, batch_size=128, epochs=100, eta=1e-4):
+    def __init__(self, num_layers=5, hidden_dim=128, batch_size=128, epochs=100, eta=1e-4):
         self.batch_size = batch_size
         self.epochs = epochs
         self.eta = eta
-        self.model = TimitMelClassifier()
+        self.model = TimitMelClassifier(num_layers, hidden_dim)
         self.objective = nn.CrossEntropyLoss()
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.eta)
         self.dataset = None
@@ -137,10 +136,13 @@ def run_model(model, X_train, y_train, X_test, y_test, params):
     clf.fit(X_train, y_train)
     return clf.score(X_test, y_test)
 
-def multiple_experiments(model, data, space):
+def multiple_experiments(model, data, space, max_evals, other_params=None):
     ts = time.time()
     st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d-%H-%M-%S')
-    _dir = "./results/" + model + "_" + st
+    if data == "toy":
+        _dir = "./results/TOY_" + model + "_" + st + '/'
+    else:
+        _dir = "./results/" + model + "_" + st + '/'
     try:
         model = eval(model)
     except NameError:
@@ -176,17 +178,31 @@ def multiple_experiments(model, data, space):
     else:
         print("Data must be either 'toy' or 'full'.")
         raise
-    
+    if other_params != None:
+        result_dict = {k:[] for k in {**space, **other_params}.keys()}
+    else:
+        result_dict = {k:[] for k in space.keys()}
+    result_dict['score'] = []
     def wrapper(params):
+        if other_params != None:
+            params = {**params, **other_params}
         with Experiment(config=params, experiments_dir=_dir) as experiment:
             config = experiment.config
             score = run_model(model, X_train, y_train, X_test, y_test, params)
+            for k in params.keys():
+                result_dict[k].append(params[k])
+            result_dict['score'].append(score)
             experiment.register_result('score', score)
         return -score
     
-    best = fmin(wrapper, space, algo=tpe.suggest, max_evals=5)
+    best = fmin(wrapper, space, algo=tpe.suggest, max_evals=max_evals)
     print("Best Raw:", best)
     print("Best Readable:", space_eval(space, best))
+    
+    with open(_dir + "results.csv", "w") as outfile:
+        writer = csv.writer(outfile, delimiter=',')
+        writer.writerow(result_dict.keys())
+        writer.writerows(zip(*result_dict.values()))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -213,9 +229,29 @@ if __name__ == "__main__":
                         help="Hyperparameter space to search optimal values over", 
                         type=str,
                         required=True)
+    parser.add_argument('--params', 
+                        help="Other parameters to pass", 
+                        type=str, 
+                        required=False)
+    parser.add_argument('--max-evals', 
+                        help="Number of evaluations when searching", 
+                        type=int, 
+                        required=True)
     
     args = parser.parse_args()
     space = json.loads(args.space)
-    space = {k:ast.literal_eval(v) for k,v in space.items()}
-    space = {k:scope.int(hp.uniform(k, v[0], v[1])) for k,v in space.items()}
-    multiple_experiments(args.model, args.data, space)
+    pspace = {}
+    for k,v in space.items():
+        ptype, pdist, prange = v.split(':')
+        prange = ast.literal_eval(prange)
+        if ptype == 'int':
+            pspace[k] = scope.int(eval(pdist)(k, prange[0], prange[1]))
+        elif ptype == 'float':
+            pspace[k] = eval(pdist)(k, prange[0], prange[1])
+        else:
+            raise TypeError("parameter types must be int or float")
+    if args.params != None:
+        params = json.loads(args.params, cls=Decoder)
+        multiple_experiments(args.model, args.data, pspace, args.max_evals, params)
+    else:
+        multiple_experiments(args.model, args.data, pspace, args.max_evals)
