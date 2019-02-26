@@ -1,0 +1,1 @@
+multiple_experiments.py --model SVC --space {"C": "float:hp.loguniform:[-2, 2]"} --max-evals 20
