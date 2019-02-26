@@ -64,9 +64,10 @@ def plot_best_results(directory='', ax=None):
     ax.set_xlabel('Accuracy')
     ax.set_title('Accuracy of best performances by model type')
 
-    return ax
+    return ax, zip(models, bests)
 
 
 if __name__ == '__main__':
-    axis = plot_best_results()
+    axis, bests = plot_best_results()
+    print(list(bests))
     plt.show()
