@@ -1,0 +1,1 @@
+multiple_experiments.py --model QuadraticDiscriminantAnalysis --space {"reg_param":"float:hp.uniform:[0,10]"} --max-evals 20

@@ -186,13 +186,16 @@ def multiple_experiments(model, data, space, max_evals, other_params=None):
     def wrapper(params):
         if other_params != None:
             params = {**params, **other_params}
-        with Experiment(config=params, experiments_dir=_dir) as experiment:
-            config = experiment.config
-            score = run_model(model, X_train, y_train, X_test, y_test, params)
-            for k in params.keys():
-                result_dict[k].append(params[k])
-            result_dict['score'].append(score)
-            experiment.register_result('score', score)
+        try:
+            with Experiment(config=params, experiments_dir=_dir) as experiment:
+                config = experiment.config
+                score = run_model(model, X_train, y_train, X_test, y_test, params)
+                for k in params.keys():
+                    result_dict[k].append(params[k])
+                result_dict['score'].append(score)
+                experiment.register_result('score', score)
+        except ValueError:
+            return np.inf
         return -score
     
     best = fmin(wrapper, space, algo=tpe.suggest, max_evals=max_evals)
