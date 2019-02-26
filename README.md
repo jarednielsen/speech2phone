@@ -76,3 +76,4 @@ These will all be specifiable by importing from the embedding module. The spectr
 - dynamic time-warping
 - reapply models to TIMIT to quantify results (quantified semi-supervised learning)
 - use Mel spectrogram but give some time dependence (80 freq x 10 time)
+- using the activations from the neural network to try to predict the speaker, and then consider the ethical implications (a la "voiceprint" technology)
