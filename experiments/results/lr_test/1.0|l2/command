@@ -1,1 +1,0 @@
-timit_experiment.py --model LogisticRegression --data toy --params {"penalty":"l2", "C":"1.0"} --dir ./results/lr_test

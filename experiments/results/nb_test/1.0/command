@@ -1,1 +1,0 @@
-timit_experiment.py --model MultinomialNB --data full --params {"alpha":"1"} --dir ./results/nb_test

@@ -1,1 +1,0 @@
-timit_experiment.py --model GaussianMixture --data toy --params {"n_components":"1"} --dir ./results/gmm_test

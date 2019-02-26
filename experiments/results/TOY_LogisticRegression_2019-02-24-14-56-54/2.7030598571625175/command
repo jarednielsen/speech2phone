@@ -1,1 +1,0 @@
-multiple_experiments.py --model LogisticRegression --data toy --space {"C":"float:hp.loguniform:[-4,4]"} --max-evals 5

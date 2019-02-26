@@ -1,9 +1,0 @@
-timit_experiment.py --model XGBoost --data toy --params {"max_depth": "20", 
-"eta": "0.3", 
-"num_class": "61",
-"gamma": "1",
-"lambda": "10",
-"alpha": "10",
-"objective": "multi:softmax",
-"eval_metric": "merror",
-"num_round": "10"} --dir ./results/xgb_test
