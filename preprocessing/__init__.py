@@ -5,6 +5,5 @@ available in Python as `speech2phone.preprocessing.test_preprocess`.
 Jared Nielsen. 2019-02-05.
 """
 
-# TL;DR: Put everything here. Remember the dot.
-
-from .preprocessing import *
+# TL;DR: Put everything here. Remember the dot. For example, we used to have:
+# from .preprocessing import *

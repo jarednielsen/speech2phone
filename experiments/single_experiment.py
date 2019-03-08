@@ -24,7 +24,7 @@ import mag
 from mag.experiment import Experiment
 from mag import summarize
 
-from speech2phone.preprocessing import get_TIMIT, get_phones
+from speech2phone.preprocessing.TIMIT.phones import get_data, get_phones
 from speech2phone.preprocessing.filters import mel
 
 import argparse
@@ -52,7 +52,7 @@ class Decoder(json.JSONDecoder):
             return [self._decode(v) for v in o]
         else:
             return o
-        
+
 class TimitMelClassifier(nn.Module):
     def __init__(self):
         super(TimitMelClassifier, self).__init__()
@@ -94,18 +94,18 @@ class FCNN:
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.eta)
         self.dataset = None
         self.dataloader = None
-    
+
     def fit(self, X, y):
         self.dataset = TimitMelDataset(X, y)
-        self.dataloader = DataLoader(self.dataset, 
-                                     batch_size=self.batch_size, 
+        self.dataloader = DataLoader(self.dataset,
+                                     batch_size=self.batch_size,
                                      shuffle=True)
         self._train()
-    
+
     def score(self, X, y):
         y_pred = self.model(Variable(torch.from_numpy(X)).float()).argmax(dim=1).detach().numpy()
         return sum(y_pred == y) / len(y)
-    
+
     def _train(self):
         for e in range(self.epochs):
             for batch, (x, y_truth) in enumerate(self.dataloader):
@@ -114,18 +114,18 @@ class FCNN:
                 loss = self.objective(y_hat, y_truth.long())
                 loss.backward()
                 self.optimizer.step()
-    
+
 class XGBoost:
     def __init__(self, **params):
         self.num_round = params["num_round"]
         del params["num_round"]
         self.params = params
         self.bst = None
-    
+
     def fit(self, X, y):
         dtrain = xgb.DMatrix(X, label=y)
         self.bst = xgb.train(self.params, dtrain, self.num_round)
-    
+
     def score(self, X, y):
         dtest = xgb.DMatrix(X, label=y)
         y_pred = self.bst.predict(dtest)
@@ -155,27 +155,27 @@ def single_experiment(model, data, params):
                XGBoost,\n\
                FCNN")
         raise
-    
+
     if data == None: data = "full"
     if data == "toy":
-        X_train, y_train = get_TIMIT(dataset='toy', 
-                                     preprocessor=mel, 
-                                     TIMIT_root='../TIMIT/TIMIT', 
-                                     use_cache=True)
+        X_train, y_train = get_data(dataset='toy',
+                                    preprocessor=mel,
+                                    TIMIT_root='../TIMIT/TIMIT',
+                                    use_cache=True)
         X_test, y_test = X_train, y_train
     elif data == "full":
-        X_train, y_train = get_TIMIT(dataset='train', 
-                                     preprocessor=mel, 
-                                     TIMIT_root='../TIMIT/TIMIT', 
-                                     use_cache=True)
-        X_test, y_test = get_TIMIT(dataset='val', 
-                                   preprocessor=mel, 
-                                   TIMIT_root='../TIMIT/TIMIT', 
-                                   use_cache=True)
+        X_train, y_train = get_data(dataset='train',
+                                    preprocessor=mel,
+                                    TIMIT_root='../TIMIT/TIMIT',
+                                    use_cache=True)
+        X_test, y_test = get_data(dataset='val',
+                                  preprocessor=mel,
+                                  TIMIT_root='../TIMIT/TIMIT',
+                                  use_cache=True)
     else:
         print("Data must be either 'toy' or 'full'.")
         raise
-    
+
     with Experiment(config=params, experiments_dir=_dir) as experiment:
         config = experiment.config
         score = run_model(model, X_train, y_train, X_test, y_test, params)
@@ -183,7 +183,7 @@ def single_experiment(model, data, params):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', 
+    parser.add_argument('--model',
                         help="Classification model. \
                         Must be one of the following:\n\
                         RandomForestClassifier,\n\
@@ -195,19 +195,19 @@ if __name__ == "__main__":
                         KMeans,\n\
                         GaussianMixture,\n\
                         XGBoost,\n\
-                        FCNN", 
-                        type=str, 
-                        required=True)
-    parser.add_argument('--data', 
-                        help="Data to use. Either 'toy' or 'full'", 
-                        type=str, 
-                        required=False)
-    parser.add_argument('--params', 
-                        help="Hyperparameters to be used on the model. \
-                              Must be of the form '{\"keyword\": \"value\", ...}'", 
+                        FCNN",
                         type=str,
                         required=True)
-    
+    parser.add_argument('--data',
+                        help="Data to use. Either 'toy' or 'full'",
+                        type=str,
+                        required=False)
+    parser.add_argument('--params',
+                        help="Hyperparameters to be used on the model. \
+                              Must be of the form '{\"keyword\": \"value\", ...}'",
+                        type=str,
+                        required=True)
+
     args = parser.parse_args()
     params = json.loads(args.params, cls=Decoder)
     single_experiment(args.model, args.data, params)

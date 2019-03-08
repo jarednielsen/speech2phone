@@ -24,7 +24,7 @@ import mag
 from mag.experiment import Experiment
 from mag import summarize
 
-from speech2phone.preprocessing import get_TIMIT, get_phones
+from speech2phone.preprocessing.TIMIT.phones import get_data, get_phones
 from speech2phone.preprocessing.filters import mel
 
 import argparse
@@ -54,14 +54,14 @@ class Decoder(json.JSONDecoder):
             return [self._decode(v) for v in o]
         else:
             return o
-        
+
 class TimitMelClassifier(nn.Module):
     def __init__(self, num_layers, hidden_dim):
         super(TimitMelClassifier, self).__init__()
         embedding_dim = 80
         output_dim = 61
         self.net = nn.ModuleList([
-            nn.Linear(hidden_dim, hidden_dim) 
+            nn.Linear(hidden_dim, hidden_dim)
             for _ in range(num_layers)])
         self.input_layer = nn.Linear(embedding_dim, hidden_dim)
         self.output_layer = nn.Linear(hidden_dim, output_dim)
@@ -94,18 +94,18 @@ class FCNN:
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.eta)
         self.dataset = None
         self.dataloader = None
-    
+
     def fit(self, X, y):
         self.dataset = TimitMelDataset(X, y)
-        self.dataloader = DataLoader(self.dataset, 
-                                     batch_size=self.batch_size, 
+        self.dataloader = DataLoader(self.dataset,
+                                     batch_size=self.batch_size,
                                      shuffle=True)
         self._train()
-    
+
     def score(self, X, y):
         y_pred = self.model(Variable(torch.from_numpy(X)).float()).argmax(dim=1).detach().numpy()
         return sum(y_pred == y) / len(y)
-    
+
     def _train(self):
         for e in range(self.epochs):
             for batch, (x, y_truth) in enumerate(self.dataloader):
@@ -114,18 +114,18 @@ class FCNN:
                 loss = self.objective(y_hat, y_truth.long())
                 loss.backward()
                 self.optimizer.step()
-    
+
 class XGBoost:
     def __init__(self, **params):
         self.num_round = params["num_round"]
         del params["num_round"]
         self.params = params
         self.bst = None
-    
+
     def fit(self, X, y):
         dtrain = xgb.DMatrix(X, label=y)
         self.bst = xgb.train(self.params, dtrain, self.num_round)
-    
+
     def score(self, X, y):
         dtest = xgb.DMatrix(X, label=y)
         y_pred = self.bst.predict(dtest)
@@ -158,23 +158,23 @@ def multiple_experiments(model, data, space, max_evals, other_params=None):
                XGBoost,\n\
                FCNN")
         raise
-    
+
     if data == None: data = "full"
     if data == "toy":
-        X_train, y_train = get_TIMIT(dataset='toy', 
-                                     preprocessor=mel, 
-                                     TIMIT_root='../TIMIT/TIMIT', 
-                                     use_cache=True)
+        X_train, y_train = get_data(dataset='toy',
+                                    preprocessor=mel,
+                                    TIMIT_root='../TIMIT/TIMIT',
+                                    use_cache=True)
         X_test, y_test = X_train, y_train
     elif data == "full":
-        X_train, y_train = get_TIMIT(dataset='train', 
-                                     preprocessor=mel, 
-                                     TIMIT_root='../TIMIT/TIMIT', 
-                                     use_cache=True)
-        X_test, y_test = get_TIMIT(dataset='val', 
-                                   preprocessor=mel, 
-                                   TIMIT_root='../TIMIT/TIMIT', 
-                                   use_cache=True)
+        X_train, y_train = get_data(dataset='train',
+                                    preprocessor=mel,
+                                    TIMIT_root='../TIMIT/TIMIT',
+                                    use_cache=True)
+        X_test, y_test = get_data(dataset='val',
+                                  preprocessor=mel,
+                                  TIMIT_root='../TIMIT/TIMIT',
+                                  use_cache=True)
     else:
         print("Data must be either 'toy' or 'full'.")
         raise
@@ -197,11 +197,11 @@ def multiple_experiments(model, data, space, max_evals, other_params=None):
         except ValueError:
             return np.inf
         return -score
-    
+
     best = fmin(wrapper, space, algo=tpe.suggest, max_evals=max_evals)
     print("Best Raw:", best)
     print("Best Readable:", space_eval(space, best))
-    
+
     with open(_dir + "results.csv", "w") as outfile:
         writer = csv.writer(outfile, delimiter=',')
         writer.writerow(result_dict.keys())
@@ -209,7 +209,7 @@ def multiple_experiments(model, data, space, max_evals, other_params=None):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', 
+    parser.add_argument('--model',
                         help="Classification model. \
                         Must be one of the following:\n\
                         RandomForestClassifier,\n\
@@ -221,26 +221,26 @@ if __name__ == "__main__":
                         KMeans,\n\
                         GaussianMixture,\n\
                         XGBoost,\n\
-                        FCNN", 
-                        type=str, 
-                        required=True)
-    parser.add_argument('--data', 
-                        help="Data to use. Either 'toy' or 'full'", 
-                        type=str, 
-                        required=False)
-    parser.add_argument('--space', 
-                        help="Hyperparameter space to search optimal values over", 
+                        FCNN",
                         type=str,
                         required=True)
-    parser.add_argument('--params', 
-                        help="Other parameters to pass", 
-                        type=str, 
+    parser.add_argument('--data',
+                        help="Data to use. Either 'toy' or 'full'",
+                        type=str,
                         required=False)
-    parser.add_argument('--max-evals', 
-                        help="Number of evaluations when searching", 
-                        type=int, 
+    parser.add_argument('--space',
+                        help="Hyperparameter space to search optimal values over",
+                        type=str,
                         required=True)
-    
+    parser.add_argument('--params',
+                        help="Other parameters to pass",
+                        type=str,
+                        required=False)
+    parser.add_argument('--max-evals',
+                        help="Number of evaluations when searching",
+                        type=int,
+                        required=True)
+
     args = parser.parse_args()
     space = json.loads(args.space)
     pspace = {}
