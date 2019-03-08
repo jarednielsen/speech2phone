@@ -13,20 +13,34 @@ from matplotlib import pyplot as plt
 
 
 def get_results(directory=''):
-    """Return a dictionary mapping model type to a list of results achieved by that model type."""
+    """Return a dictionary mapping model type to a list of results achieved by that model type.
+
+    Args:
+        directory (str): location of result directories, each containing a results.csv file.
+
+    Returns:
+        (dict): map of model type to a list of results achieved by that model type.
+    """
     results = defaultdict(set)
     for result_file in glob(path.join(directory, '**/results.csv'), recursive=True):
         model_type = result_file.split('/')[1].split('_')[0]
         with open(result_file) as f:
+            next(f)  # don't use the header
             for line in f:
                 score = line.split(',')[-1][:-1]
-                if 'score' != score:  # don't use the header
-                    results[model_type].add(float(score))
+                results[model_type].add(float(score))
     return results
 
 
 def reduce_names(l):
-    """Reduce the names in the list to acronyms, if possible."""
+    """Reduce the names in the list to acronyms, if possible.
+
+    Args:
+        l (list(str)): list of names to convert.
+
+    Returns:
+        (list(str)): list of converted names.
+    """
     for i, item in enumerate(l):
         if item == 'QuadraticDiscriminantAnalysis':
             l[i] = 'QDA'
@@ -40,7 +54,16 @@ def reduce_names(l):
 
 
 def plot_best_results(directory='', ax=None):
-    """Plot the best result of each model type in a horizontal bar chart."""
+    """Plot the best result of each model type in a horizontal bar chart.
+
+    Args:
+        directory (str): directory where result directories are located.
+        ax (matplotlib.axes.Axes): axes to plot results on, if given.
+
+    Returns:
+        (matplotlib.axes.Axes): resulting axis object with plotted data.
+        list((string, float)): list of models along with their best results.
+    """
     results = get_results(directory)
 
     # get the best result for each model
@@ -64,10 +87,10 @@ def plot_best_results(directory='', ax=None):
     ax.set_xlabel('Accuracy')
     ax.set_title('Accuracy of best performances by model type')
 
-    return ax, zip(models, bests)
+    return ax, list(zip(models, bests))
 
 
 if __name__ == '__main__':
-    axis, bests = plot_best_results()
-    print(list(bests))
+    axis, besties = plot_best_results()
+    print(besties)
     plt.show()
