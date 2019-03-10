@@ -1,0 +1,1 @@
+multiple_experiments.py --model SVC --space {"C": "float:hp.lognormal:[0, 1]", "kernel": "rbf", "gamma": "float:hp.lognormal:[0, 1]"} --max-evals 20
