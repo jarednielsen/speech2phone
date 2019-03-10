@@ -68,8 +68,10 @@ Options for embedding include:
 - single linear layer (we could try [this](https://ai.stanford.edu/~ang/papers/nips02-metric.pdf) or just SGD)
 - more complex learned network
 - autoencoder
+- UMAP
+- t-SNE
 
-These will all be specifiable by importing from the embedding module. The spectrum works pretty well as an embedding space, as we found by doing some PCA (see `/pca`). I think we'll use it as a baseline.
+These will all be specifiable by importing from the embedding module. The spectrum works pretty well as an embedding space, as we found by doing some PCA (see `/visualizations/pca_embedding.png`). I think we'll use it as a baseline.
 
 ## Things to try (add ideas here)
 
