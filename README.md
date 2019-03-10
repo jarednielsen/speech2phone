@@ -7,7 +7,7 @@ Mark when you've finished them.
 - (Kyle) Preprocessor caching ✅
 - (Kyle) Preprocessor returns categorical distribution ✅
 - (Kyle) Embedding baseline
-- (Seong) Python *scripts* (not notebooks) that use grid search, `mag` and save the plots in `/visualizations` for the following models:
+- (Seong) Python *scripts* (not notebooks) that use grid search, `mag` and save the plots in `/visualizations` for the following models: ✅
   - Random Forest
   - XGBoost
   - Gaussian Discriminant Analysis
@@ -29,12 +29,13 @@ Mark when you've finished them.
 
 ## Directory Structure
 
-- *experiments/*: Put the results of *mag* experiments as subfolders in here.
-- *visualizations/*: Examples of how to plot a Mel spectrogram, etc.
-- *preprocessing/*: Loads data from files, caches it, and returns NumPy arrays.
 - *embedding/*: Learned embeddings, applied after preprocessing. For example, PCA.
+- *experiments/*: Put the results of *mag* experiments as subfolders in here.
+- *models/*: custom model classes we've built.
+- *preprocessing/*: Loads data from files, caches it, and returns NumPy arrays.
 - *results/*: Assorted images/ plots that are interesting and could be useful in the final report. For example, a PCA .png
-- *temp_jaredkyleseong/*: The equivalent of branches. Put work-in-progress here, and bring it out into the main system when it's done.
+- *temp_{jared, kyle, seong}/*: The equivalent of branches. Put work-in-progress here, and bring it out into the main system when it's done.
+- *visualizations/*: Examples of how to plot a Mel spectrogram, etc.
 
 ## Testing
 

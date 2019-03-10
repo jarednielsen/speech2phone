@@ -1,6 +1,14 @@
-import numpy as np
+"""Module for running a single experiment with mag using a nifty command line interface.
 
-import xgboost as xgb
+Seong-Eun Cho. Documented by Kyle Roth, 2019-03-09.
+"""
+
+
+import argparse
+import json
+import time
+import datetime
+
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 from sklearn.naive_bayes import MultinomialNB
@@ -10,196 +18,143 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.cluster import KMeans
 from sklearn.mixture import GaussianMixture
 
-import torch
-from torch import nn
-from torch.utils.data import Dataset, DataLoader
-import torch.optim as optim
-from torch.autograd import Variable
-
-from hyperopt import hp
-from hyperopt import fmin, tpe, space_eval
-from hyperopt.pyll.base import scope
-
-import mag
 from mag.experiment import Experiment
-from mag import summarize
 
-from speech2phone.preprocessing.TIMIT.phones import get_data, get_phones
+from speech2phone.preprocessing.TIMIT.phones import get_data
 from speech2phone.preprocessing.filters import mel
 
-import argparse
-import json
-import time
-import datetime
+from speech2phone.models import XGBoost, FCNN
+
 
 class Decoder(json.JSONDecoder):
+    """Class for decoding JSON by overriding the default json.JSONDecoder.
+
+    Converts strings that look like ints or floats to those data types.
+    """
+
     def decode(self, s):
         result = super().decode(s)
         return self._decode(result)
 
     def _decode(self, o):
-        if isinstance(o, str) or isinstance(o, str):
+        if isinstance(o, str):
+            # try converting to float or int
             try:
                 if float(o) == int(float(o)):
                     return int(float(o))
-                else:
-                    return float(o)
-            except ValueError:
+                return float(o)
+            except ValueError:  # couldn't convert to number
                 return o
         elif isinstance(o, dict):
+            # decode each of the items in the dict
             return {k: self._decode(v) for k, v in o.items()}
         elif isinstance(o, list):
+            # decode each of the items in the list
             return [self._decode(v) for v in o]
-        else:
-            return o
+        return o
 
-class TimitMelClassifier(nn.Module):
-    def __init__(self):
-        super(TimitMelClassifier, self).__init__()
-        embedding_dim = 80
-        output_dim = 61
-        self.net = nn.Sequential(
-            nn.Linear(embedding_dim, 128),
-            nn.ReLU(),
-            nn.Linear(128, 128),
-            nn.ReLU(),
-            nn.Linear(128, 128),
-            nn.ReLU(),
-            nn.Linear(128, 128),
-            nn.ReLU(),
-            nn.Linear(128, 128),
-            nn.ReLU(),
-            nn.Linear(128, output_dim)
-        )
-    def forward(self, inp):
-        return self.net(inp)
 
-class TimitMelDataset(Dataset):
-    def __init__(self, X, y):
-        super().__init__()
-        self.X = X
-        self.y = y
-    def __len__(self):
-        return len(self.y)
-    def __getitem__(self, idx):
-        return self.X[idx], self.y[idx]
+def get_model(name):  # pylint: disable=too-many-return-statements
+    """Get the model constructor specified by the name given.
 
-class FCNN:
-    def __init__(self, batch_size=128, epochs=100, eta=1e-4):
-        self.batch_size = batch_size
-        self.epochs = epochs
-        self.eta = eta
-        self.model = TimitMelClassifier()
-        self.objective = nn.CrossEntropyLoss()
-        self.optimizer = optim.Adam(self.model.parameters(), lr=self.eta)
-        self.dataset = None
-        self.dataloader = None
+    Args:
+        name (str): name of model constructor to be called.
+    Returns:
+        (callable): model constructor to be called.
+    """
+    name = name.lower()
+    if name == 'randomforestclassifier':
+        return RandomForestClassifier
+    if name == 'quadraticdiscriminantanalysis':
+        return QuadraticDiscriminantAnalysis
+    if name == 'multinomialnb':
+        return MultinomialNB
+    if name == 'logisticregression':
+        return LogisticRegression
+    if name == 'svc':
+        return SVC
+    if name == 'kneighborsclassifier':
+        return KNeighborsClassifier
+    if name == 'kmeans':
+        return KMeans
+    if name == 'gaussianmixture':
+        return GaussianMixture
+    if name == 'xgboost':
+        return XGBoost
+    if name == 'fcnn':
+        return FCNN
+    raise ValueError(
+        "model must be one of {RandomForestClassifier, QuadraticDiscriminantAnalysis, MultinomialNB, " \
+        "LogisticRegression, SVC, KNeighborsClassifier, KMeans, GaussianMixture, XGBoost, FCNN}"
+    )
 
-    def fit(self, X, y):
-        self.dataset = TimitMelDataset(X, y)
-        self.dataloader = DataLoader(self.dataset,
-                                     batch_size=self.batch_size,
-                                     shuffle=True)
-        self._train()
 
-    def score(self, X, y):
-        y_pred = self.model(Variable(torch.from_numpy(X)).float()).argmax(dim=1).detach().numpy()
-        return sum(y_pred == y) / len(y)
+def run_model(model, X_train, y_train, X_test, y_test, params):  # pylint: disable=too-many-arguments
+    """Train the given model on the training data, and return the score for the model's predictions on the test data.
 
-    def _train(self):
-        for e in range(self.epochs):
-            for batch, (x, y_truth) in enumerate(self.dataloader):
-                self.optimizer.zero_grad()
-                y_hat = self.model(x.float())
-                loss = self.objective(y_hat, y_truth.long())
-                loss.backward()
-                self.optimizer.step()
+    Specify parameters of the model with the provided params.
 
-class XGBoost:
-    def __init__(self, **params):
-        self.num_round = params["num_round"]
-        del params["num_round"]
-        self.params = params
-        self.bst = None
-
-    def fit(self, X, y):
-        dtrain = xgb.DMatrix(X, label=y)
-        self.bst = xgb.train(self.params, dtrain, self.num_round)
-
-    def score(self, X, y):
-        dtest = xgb.DMatrix(X, label=y)
-        y_pred = self.bst.predict(dtest)
-        return sum(y_pred == y) / len(y)
-
-def run_model(model, X_train, y_train, X_test, y_test, params):
+    Args:
+        model (callable): model to be initialized with the specified parameters.
+        X_train (list-like): features of train set.
+        y_train (list-like): labels of train set.
+        X_test (list-like): features of test set.
+        y_test (list-like): labels of test set.
+        params (dict): parameters to specify to the model.
+    Returns:
+        (float): the accuracy score of the model's predictions on the test set after being trained on the train set.
+    """
     clf = model(**params)
     clf.fit(X_train, y_train)
     return clf.score(X_test, y_test)
 
+
 def single_experiment(model, data, params):
+    """Apply the model to the data and store the results using mag.
+
+    Args:
+        model (str): name of callable model constructor in the current namespace.
+        data (str): specify the TIMIT data sets to use. If specified, must be one of {'full', 'toy'}.
+        params (dict): dictionary with parameters for model.
+    """
+    # prepare the experiment directory
     ts = time.time()
     st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d-%H-%M-%S')
     _dir = "./results/" + model + "_" + st
-    try:
-        model = eval(model)
-    except NameError:
-        print("Model must be one of the following:\n\
-               RandomForestClassifier,\n\
-               QuadraticDiscriminantAnalysis,\n\
-               MultinomialNB,\n\
-               LogisticRegression,\n\
-               SVC,\n\
-               KNeighborsClassifier,\n\
-               KMeans,\n\
-               GaussianMixture,\n\
-               XGBoost,\n\
-               FCNN")
-        raise
+    if data is not None and data.lower() == 'toy':
+        _dir = "./results/TOY_" + model + "_" + st + '/'
+    else:
+        _dir = "./results/" + model + "_" + st + '/'
 
-    if data == None: data = "full"
-    if data == "toy":
-        X_train, y_train = get_data(dataset='toy',
-                                    preprocessor=mel,
-                                    TIMIT_root='../TIMIT/TIMIT',
-                                    use_cache=True)
+    # select the model to be used
+    model = get_model(model)
+
+    # get the specified dataset
+    if data is None:
+        data = "full"
+    if data.lower() == "toy":
+        X_train, y_train = get_data(dataset='toy', preprocessor=mel, TIMIT_root='../TIMIT/TIMIT', use_cache=True)
         X_test, y_test = X_train, y_train
     elif data == "full":
-        X_train, y_train = get_data(dataset='train',
-                                    preprocessor=mel,
-                                    TIMIT_root='../TIMIT/TIMIT',
-                                    use_cache=True)
-        X_test, y_test = get_data(dataset='val',
-                                  preprocessor=mel,
-                                  TIMIT_root='../TIMIT/TIMIT',
-                                  use_cache=True)
+        X_train, y_train = get_data(dataset='train', preprocessor=mel, TIMIT_root='../TIMIT/TIMIT', use_cache=True)
+        X_test, y_test = get_data(dataset='val', preprocessor=mel, TIMIT_root='../TIMIT/TIMIT', use_cache=True)
     else:
-        print("Data must be either 'toy' or 'full'.")
-        raise
+        raise ValueError("data must be one of {'toy', 'full'}")
 
     with Experiment(config=params, experiments_dir=_dir) as experiment:
-        config = experiment.config
         score = run_model(model, X_train, y_train, X_test, y_test, params)
         experiment.register_result('score', score)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--model',
-                        help="Classification model. \
-                        Must be one of the following:\n\
-                        RandomForestClassifier,\n\
-                        QuadraticDiscriminantAnalysis,\n\
-                        MultinomialNB,\n\
-                        LogisticRegression,\n\
-                        SVC,\n\
-                        KNeighborsClassifier,\n\
-                        KMeans,\n\
-                        GaussianMixture,\n\
-                        XGBoost,\n\
-                        FCNN",
+                        help='Classification model. Must be one of {RandomForestClassifier, ' \
+                            'QuadraticDiscriminantAnalysis, MultinomialNB, LogisticRegression, SVC, ' \
+                            'KNeighborsClassifier, KMeans, GaussianMixture, XGBoost, FCNN',
                         type=str,
                         required=True)
     parser.add_argument('--data',
-                        help="Data to use. Either 'toy' or 'full'",
+                        help="Data to use. One of {'toy', 'full'}",
                         type=str,
                         required=False)
     parser.add_argument('--params',
@@ -209,5 +164,5 @@ if __name__ == "__main__":
                         required=True)
 
     args = parser.parse_args()
-    params = json.loads(args.params, cls=Decoder)
-    single_experiment(args.model, args.data, params)
+    model_params = json.loads(args.params, cls=Decoder)
+    single_experiment(args.model, args.data, model_params)
