@@ -20,7 +20,7 @@ import numpy as np
 from scipy.io import wavfile
 from sklearn.model_selection import train_test_split
 
-from speech2phone.preprocessing.TIMIT.phones import _get_dataset_path, get_indices
+from speech2phone.preprocessing.TIMIT.phones import _get_dataset_path, get_indices, to_onehot
 
 
 def _load_from_dir(directory, max_files=None):
@@ -114,8 +114,8 @@ def get_data(dataset='train', preprocessor=None, batch_preprocess=True, TIMIT_ro
         fn_name = dict(inspect.getmembers(preprocessor))['__name__']
 
     # ensure the caching directory is available
-    pickle_path = path.join(TIMIT_root, 'cache/{}/{}/{}.pkl'.format(dataset.lower(), fn_name, padding))
-    makedirs(path.join(TIMIT_root, 'cache/{}/{}'.format(dataset.lower(), fn_name)), exist_ok=True)
+    pickle_path = path.join(TIMIT_root, 'cache/entire-{}/{}.pkl'.format(dataset.lower(), fn_name))
+    makedirs(path.join(TIMIT_root, 'cache/entire-{}'.format(dataset.lower())), exist_ok=True)
 
     # load data from either cache or directory
     if use_cache and path.isfile(pickle_path):  # cache exists
@@ -131,6 +131,9 @@ def get_data(dataset='train', preprocessor=None, batch_preprocess=True, TIMIT_ro
         else:
             X, bounds, y = _load_from_dir(set_root)
         print(' done.')
+
+        print(len(X), len(bounds), len(y))
+        print(X[0].shape, bounds[0], y[0])
 
         # get just train set or just val set if necessary
         if dataset.lower() == 'train':
