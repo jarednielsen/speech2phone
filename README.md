@@ -30,7 +30,8 @@ Mark when you've finished them.
 ## Directory Structure
 
 - *embedding/*: Learned embeddings, applied after preprocessing. For example, PCA.
-- *experiments/*: Put the results of *mag* experiments as subfolders in here.
+- *experiments/class/*: *mag* experiments on classification (phoneme boundaries given to model).
+- *experiments/seg_class/*: *mag* experiments on segmentation and classification (phoneme boundaries produced by model).
 - *models/*: custom model classes we've built.
 - *preprocessing/*: Loads data from files, caches it, and returns NumPy arrays.
 - *results/*: Assorted images/ plots that are interesting and could be useful in the final report. For example, a PCA .png
