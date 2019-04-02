@@ -61,7 +61,7 @@ def _load_from_dir(directory, max_files=None):
                 temp_phones = []
                 for line in phn:
                     left, right, phone = line.split()
-                    temp_bounds.append([left, right])
+                    temp_bounds.append([int(left), int(right)])
                     temp_phones.append(phone)
                 bounds.append(np.array(temp_bounds))
                 phonemes.append(get_indices(temp_phones))  # convert to indices
@@ -121,7 +121,7 @@ def get_data(dataset='train', preprocessor=None, batch_preprocess=True, TIMIT_ro
     if use_cache and path.isfile(pickle_path):  # cache exists
         print('Loading {}/{} set from cache...'.format(dataset.lower(), fn_name), end='', flush=True)
         with open(pickle_path, 'rb') as infile:
-            X, y = pickle.load(infile)
+            X, bounds, y = pickle.load(infile)
         print(' done.')
     else:  # not cached
         print('Loading {} set from files...'.format(dataset.lower()), end='', flush=True)
@@ -132,14 +132,11 @@ def get_data(dataset='train', preprocessor=None, batch_preprocess=True, TIMIT_ro
             X, bounds, y = _load_from_dir(set_root)
         print(' done.')
 
-        print(len(X), len(bounds), len(y))
-        print(X[0].shape, bounds[0], y[0])
-
         # get just train set or just val set if necessary
         if dataset.lower() == 'train':
-            X, _, bounds, _, y, _ = train_test_split(X, bounds, y, test_size=0.25, random_state=42, stratify=y)
+            X, _, bounds, _, y, _ = train_test_split(X, bounds, y, test_size=0.25, random_state=42)
         elif dataset.lower().startswith('val'):
-            _, X, _, bounds, _, y = train_test_split(X, bounds, y, test_size=0.25, random_state=42, stratify=y)
+            _, X, _, bounds, _, y = train_test_split(X, bounds, y, test_size=0.25, random_state=42)
 
         # apply preprocessor
         if preprocessor:
@@ -166,5 +163,7 @@ def get_data(dataset='train', preprocessor=None, batch_preprocess=True, TIMIT_ro
 
 def test_TIMIT_entire():
     """Test get_data using default parameters."""
-    result = get_data()
-    print("running test_TIMIT_entire(); result is {}".format(result))
+    X, bounds, y = get_data()
+    print("running test_TIMIT_entire()")
+    print('Object lengths are:', len(X), len(bounds), len(y))
+    print('Shapes of first elements are:', X[0].shape, bounds[0].shape, y[0].shape)

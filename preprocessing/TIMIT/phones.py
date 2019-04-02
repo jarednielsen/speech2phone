@@ -234,5 +234,7 @@ def get_data(dataset='train', preprocessor=None, batch_preprocess=True, TIMIT_ro
 
 def test_TIMIT_phones():
     """Test get_data using default parameters."""
-    result = get_data()
-    print("running test_TIMIT_phones(); result is {}".format(result))
+    X, y = get_data()
+    print("running test_TIMIT_phones()")
+    print('Object lengths are:', len(X), len(y))
+    print('Shapes of first elements are:', X[0].shape, y[0].shape)
