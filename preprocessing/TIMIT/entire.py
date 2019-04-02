@@ -10,7 +10,7 @@ Kyle Roth. 2019-02-05.
 """
 
 
-from os import path, mkdir
+from os import path, makedirs
 from glob import iglob as glob
 import warnings
 import pickle
@@ -114,9 +114,8 @@ def get_data(dataset='train', preprocessor=None, batch_preprocess=True, TIMIT_ro
         fn_name = dict(inspect.getmembers(preprocessor))['__name__']
 
     # ensure the caching directory is available
-    if not path.isdir(path.join(TIMIT_root, 'cache/entire-{}/{}'.format(dataset.lower(), fn_name))):
-        mkdir(path.join(TIMIT_root, 'cache/entire-{}'.format(dataset.lower())))
-    pickle_path = path.join(TIMIT_root, 'cache/entire-{}/{}.pkl'.format(dataset.lower(), fn_name))
+    pickle_path = path.join(TIMIT_root, 'cache/{}/{}/{}.pkl'.format(dataset.lower(), fn_name, padding))
+    makedirs(path.join(TIMIT_root, 'cache/{}/{}'.format(dataset.lower(), fn_name)), exist_ok=True)
 
     # load data from either cache or directory
     if use_cache and path.isfile(pickle_path):  # cache exists
