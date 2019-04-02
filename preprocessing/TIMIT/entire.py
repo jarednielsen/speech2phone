@@ -67,7 +67,7 @@ def _load_from_dir(directory, max_files=None):
                 phonemes.append(get_indices(temp_phones))  # convert to indices
         else:
             warnings.warn('wav file has no phn file: {}'.format(file))
-    return samples, phonemes
+    return samples, bounds, phonemes
 
 
 def get_data(dataset='train', preprocessor=None, batch_preprocess=True, TIMIT_root='TIMIT/TIMIT/',
@@ -83,10 +83,11 @@ def get_data(dataset='train', preprocessor=None, batch_preprocess=True, TIMIT_ro
 
     Args:
         dataset (str): specifies the requested dataset; one of {'train', 'val', 'test', 'toy'}.
-        preprocessor (callable): preprocessing function to be applied to data. Call signature must allow (x, y) where
-                                 x is a single np.ndarray of audio and y is a label (str). If batch_preprocess is True,
-                                 preprocessor is called on X, y where X is a np.ndarray of all the audio and y is a list
-                                 of labels.
+        preprocessor (callable): preprocessing function to be applied to data. Call signature must allow (x, b, y)
+                                 where x is a single np.ndarray of audio, b is an np.ndarray of boundaries
+                                 (shape (2,)), and y is a label (str). If batch_preprocess is True, preprocessor is
+                                 called on X, bounds, y where X is a np.ndarray of all the audio, bounds is an
+                                 np.ndarray of boundaries (shape (n, 2)), and y is a list of labels.
         batch_preprocess (bool): if True, preprocessor is called on the entire dataset at once. Otherwise, preprocessor
                                  is called on a single data point and label at a time.
         TIMIT_root (str): specifies the root data directory of the TIMIT corpus. Should contain subdirectories 'TRAIN'
@@ -97,6 +98,7 @@ def get_data(dataset='train', preprocessor=None, batch_preprocess=True, TIMIT_ro
 
     Returns:
         list(np.ndarray): audio data, preprocessed as specified.
+        list(np.ndarray): Array of indices in the audio corresponding to phoneme boundaries.
         list(np.ndarray): arrays of phonemes corresponding to each audio file.
     """
     if y_type.lower() not in ('categorical', 'one-hot'):
@@ -126,38 +128,38 @@ def get_data(dataset='train', preprocessor=None, batch_preprocess=True, TIMIT_ro
         print('Loading {} set from files...'.format(dataset.lower()), end='', flush=True)
         # load from files
         if dataset.lower() == 'toy':
-            X, y = _load_from_dir(set_root, max_files=100)
+            X, bounds, y = _load_from_dir(set_root, max_files=100)
         else:
-            X, y = _load_from_dir(set_root)
+            X, bounds, y = _load_from_dir(set_root)
         print(' done.')
 
         # get just train set or just val set if necessary
         if dataset.lower() == 'train':
-            X, _, y, _ = train_test_split(X, y, test_size=0.25, random_state=42, stratify=y)
+            X, _, bounds, _, y, _ = train_test_split(X, bounds, y, test_size=0.25, random_state=42, stratify=y)
         elif dataset.lower().startswith('val'):
-            _, X, _, y = train_test_split(X, y, test_size=0.25, random_state=42, stratify=y)
+            _, X, _, bounds, _, y = train_test_split(X, bounds, y, test_size=0.25, random_state=42, stratify=y)
 
         # apply preprocessor
         if preprocessor:
             print('Applying preprocessor "{}"...'.format(fn_name), end='', flush=True)
             if batch_preprocess:
-                X, y = preprocessor(X, y)
+                X, bounds, y = preprocessor(X, bounds, y)
             else:
-                X, y = zip(*(preprocessor(x, wai) for x, wai in zip(X, y)))
+                X, y = zip(*(preprocessor(x, b, wai) for x, b, wai in zip(X, bounds, y)))
                 X, y = list(X), list(y)
             print(' done.')
 
         # cache the dataset for future use
         print('Saving {}/{} set to cache...'.format(dataset.lower(), fn_name), end='', flush=True)
         with open(pickle_path, 'wb+') as outfile:
-            pickle.dump((X, y), outfile)
+            pickle.dump((X, bounds, y), outfile)
         print(' done.')
 
     # convert to one-hot if necessary
     if y_type.lower() == 'one-hot':
         y = to_onehot(y)
 
-    return X, y
+    return X, bounds, y
 
 
 def test_TIMIT_entire():
