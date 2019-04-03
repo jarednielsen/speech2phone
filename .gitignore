@@ -6,3 +6,7 @@
 
 # data
 TIMIT/**
+
+# random files
+temp_jared/WISDM_ar_v1.1/*
+temp_jared/best_model*.h5
