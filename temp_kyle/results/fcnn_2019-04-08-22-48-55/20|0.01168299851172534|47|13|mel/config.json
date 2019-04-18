@@ -1,0 +1,7 @@
+{
+    "epochs": 20,
+    "eta": 0.01168299851172534,
+    "hidden_dim": 47,
+    "num_layers": 13,
+    "preprocessor": "mel"
+}

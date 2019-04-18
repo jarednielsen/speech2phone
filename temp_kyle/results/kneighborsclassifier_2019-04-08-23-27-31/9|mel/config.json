@@ -1,0 +1,4 @@
+{
+    "n_neighbors": 9,
+    "preprocessor": "mel"
+}

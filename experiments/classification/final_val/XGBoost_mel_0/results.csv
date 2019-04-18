@@ -1,0 +1,2 @@
+max_depth,eta,gamma,lambda,alpha,num_class,objective,eval_metric,num_round,score
+35,0.5467580569052732,10.804279000822985,20.37580414530737,0.03615429760371766,61,multi:softmax,merror,10,0.35708476414241824

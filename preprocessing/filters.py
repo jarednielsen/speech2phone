@@ -7,7 +7,7 @@ Kyle Roth. 2019-02-12.
 import librosa
 import numpy as np
 from scipy import fft
-from scipy.signal import resample
+from scipy import signal
 
 
 # used by mel function
@@ -19,7 +19,7 @@ def mel(X, y):
     out = []
     for x in X:
         spectrum = np.log(np.abs(fft(x))[:len(x)//2])
-        spectrum = resample(spectrum, 1025)
+        spectrum = signal.resample(spectrum, 1025)
         x_mel = np.dot(_mel, spectrum)
         out.append(x_mel)
     X = np.array(out)
@@ -30,3 +30,27 @@ def mel(X, y):
     X, y = X[~is_nan], y[~is_nan]
 
     return X, y
+
+
+def resample(data, y):
+    """Resample audio to 800 points."""
+    out = []
+    for thing in data:
+        out.append(signal.resample(thing, 800))
+    return np.array(out), y
+
+
+def get_filter(name):  # pylint: disable=too-many-return-statements
+    """Get the preprocessor specified by the name given.
+
+    Args:
+        name (str): name of model constructor to be called.
+    Returns:
+        (callable): model constructor to be called.
+    """
+    name = name.lower()
+    if name == 'mel':
+        return mel
+    if name == 'resample':
+        return resample
+    raise ValueError("filter must be one of {mel, resample}")

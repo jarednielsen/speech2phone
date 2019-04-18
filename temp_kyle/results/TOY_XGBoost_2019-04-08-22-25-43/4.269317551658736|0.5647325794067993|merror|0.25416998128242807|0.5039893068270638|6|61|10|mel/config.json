@@ -1,0 +1,11 @@
+{
+    "alpha": 4.269317551658736,
+    "eta": 0.5647325794067993,
+    "eval_metric": "merror",
+    "gamma": 0.25416998128242807,
+    "lambda": 0.5039893068270638,
+    "max_depth": 6,
+    "num_class": 61,
+    "num_round": 10,
+    "preprocessor": "mel"
+}
