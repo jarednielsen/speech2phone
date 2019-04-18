@@ -126,13 +126,28 @@ class FCNN:
         Returns:
             (float): accuracy score of model's predictions.
         """
-        y_pred = self.model(Variable(torch.from_numpy(X)).float()).argmax(dim=1).detach().numpy()  # pylint: disable=no-member
-        return sum(y_pred == y) / len(y)
+        tensor = torch.from_numpy(X)
+        if torch.cuda.is_available():
+            device = torch.device('cuda:0')
+            tensor = tensor.to(device)
+        else:
+            device = torch.device('cpu')
+        
+        y_pred = self.model(Variable(tensor).float()).argmax(dim=1).detach().to('cpu')  # pylint: disable=no-member
+        return sum(y_pred.numpy() == y) / len(y)
 
     def _train(self):
         """Train the network using cross entropy loss for the specified number of epochs."""
+        if torch.cuda.is_available():
+            self.model = self.model.cuda()
+            device = torch.device('cuda:0')
+        else:
+            device = torch.device('cpu')
+        
         for _ in range(self.epochs):
             for x, y_truth in self.dataloader:
+                x = x.to(device)
+                y_truth = y_truth.to(device)
                 self.optimizer.zero_grad()
                 y_hat = self.model(x.float())
                 loss = self.objective(y_hat, y_truth.long())
